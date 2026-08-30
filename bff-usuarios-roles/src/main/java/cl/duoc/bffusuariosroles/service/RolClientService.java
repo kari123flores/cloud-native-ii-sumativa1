@@ -23,4 +23,35 @@ public class RolClientService {
                 .retrieve()
                 .body(String.class);
     }
+    public String buscarRolPorId(Long id) {
+    return restClient.get()
+            .uri("/roles/" + id)
+            .retrieve()
+            .body(String.class);
+    }
+
+    public String crearRol(String rolJson) {
+        return restClient.post()
+                .uri("/roles")
+                .header("Content-Type", "application/json")
+                .body(rolJson)
+                .retrieve()
+                .body(String.class);
+    }
+
+    public String actualizarRol(Long id, String rolJson) {
+        return restClient.put()
+                .uri("/roles/" + id)
+                .header("Content-Type", "application/json")
+                .body(rolJson)
+                .retrieve()
+                .body(String.class);
+    }
+
+    public void eliminarRol(Long id) {
+        restClient.delete()
+                .uri("/roles/" + id)
+                .retrieve()
+                .toBodilessEntity();
+    }
 }
