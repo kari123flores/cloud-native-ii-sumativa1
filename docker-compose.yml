@@ -1,0 +1,33 @@
+services:
+
+  function-usuarios:
+    image: function-usuarios:latest
+    container_name: function-usuarios
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@host.docker.internal:1521/XEPDB1
+      SPRING_DATASOURCE_USERNAME: system
+      SPRING_DATASOURCE_PASSWORD: Oracle123
+
+  function-roles:
+    image: function-roles:latest
+    container_name: function-roles
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@host.docker.internal:1521/XEPDB1
+      SPRING_DATASOURCE_USERNAME: system
+      SPRING_DATASOURCE_PASSWORD: Oracle123
+
+  bff-usuarios-roles:
+    image: bff-usuarios-roles:latest
+    container_name: bff-usuarios-roles
+    ports:
+      - "8080:8080"
+    environment:
+      USUARIOS_SERVICE_URL: http://function-usuarios:8081
+      ROLES_SERVICE_URL: http://function-roles:8082
+    depends_on:
+      - function-usuarios
+      - function-roles
