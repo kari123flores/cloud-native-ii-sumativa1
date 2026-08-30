@@ -8,7 +8,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:oracle:thin:@host.docker.internal:1521/XEPDB1
       SPRING_DATASOURCE_USERNAME: system
-      SPRING_DATASOURCE_PASSWORD: Oracle123
+      SPRING_DATASOURCE_PASSWORD: ${ORACLE_PASSWORD}
 
   function-roles:
     image: function-roles:latest
@@ -18,7 +18,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:oracle:thin:@host.docker.internal:1521/XEPDB1
       SPRING_DATASOURCE_USERNAME: system
-      SPRING_DATASOURCE_PASSWORD: Oracle123
+      SPRING_DATASOURCE_PASSWORD: ${ORACLE_PASSWORD}
 
   bff-usuarios-roles:
     image: bff-usuarios-roles:latest
