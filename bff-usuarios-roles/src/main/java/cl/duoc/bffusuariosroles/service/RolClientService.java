@@ -20,7 +20,7 @@ public class RolClientService {
     public String listarRoles() {
 
         return restClient.get()
-                .uri("/api/roles")
+                .uri("/roles")
                 .retrieve()
                 .body(String.class);
     }
@@ -28,7 +28,7 @@ public class RolClientService {
     public String buscarRolPorId(Long id) {
 
         return restClient.get()
-                .uri("/api/roles/" + id)
+                .uri("/roles/" + id)
                 .retrieve()
                 .body(String.class);
     }
@@ -36,7 +36,7 @@ public class RolClientService {
     public String crearRol(String rolJson) {
 
         return restClient.post()
-                .uri("/api/roles")
+                .uri("/roles")
                 .header("Content-Type", "application/json")
                 .body(rolJson)
                 .retrieve()
@@ -46,7 +46,7 @@ public class RolClientService {
     public String actualizarRol(Long id, String rolJson) {
 
         return restClient.put()
-                .uri("/api/roles/" + id)
+                .uri("/roles/" + id)
                 .header("Content-Type", "application/json")
                 .body(rolJson)
                 .retrieve()
@@ -56,7 +56,7 @@ public class RolClientService {
     public void eliminarRol(Long id) {
 
         restClient.delete()
-                .uri("/api/roles/" + id)
+                .uri("/roles/" + id)
                 .retrieve()
                 .toBodilessEntity();
     }
