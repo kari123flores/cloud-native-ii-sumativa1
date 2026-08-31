@@ -18,3 +18,5 @@ Thumbs.db
 
 # Variables / secretos
 .env
+
+local.settings.json

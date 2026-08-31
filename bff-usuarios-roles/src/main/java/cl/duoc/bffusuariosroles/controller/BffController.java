@@ -14,11 +14,14 @@ public class BffController {
     public BffController(
             UsuarioClientService usuarioClientService,
             RolClientService rolClientService) {
+
         this.usuarioClientService = usuarioClientService;
         this.rolClientService = rolClientService;
     }
 
+    // =========================
     // USUARIOS
+    // =========================
 
     @GetMapping("/usuarios")
     public String listarUsuarios() {
@@ -39,15 +42,19 @@ public class BffController {
     public String actualizarUsuario(
             @PathVariable Long id,
             @RequestBody String usuarioJson) {
+
         return usuarioClientService.actualizarUsuario(id, usuarioJson);
     }
 
     @DeleteMapping("/usuarios/{id}")
-    public void eliminarUsuario(@PathVariable Long id) {
+    public String eliminarUsuario(@PathVariable Long id) {
         usuarioClientService.eliminarUsuario(id);
+        return "{\"mensaje\":\"Usuario eliminado correctamente\"}";
     }
 
+    // =========================
     // ROLES
+    // =========================
 
     @GetMapping("/roles")
     public String listarRoles() {
@@ -68,11 +75,13 @@ public class BffController {
     public String actualizarRol(
             @PathVariable Long id,
             @RequestBody String rolJson) {
+
         return rolClientService.actualizarRol(id, rolJson);
     }
 
     @DeleteMapping("/roles/{id}")
-    public void eliminarRol(@PathVariable Long id) {
+    public String eliminarRol(@PathVariable Long id) {
         rolClientService.eliminarRol(id);
+        return "{\"mensaje\":\"Rol eliminado correctamente\"}";
     }
 }

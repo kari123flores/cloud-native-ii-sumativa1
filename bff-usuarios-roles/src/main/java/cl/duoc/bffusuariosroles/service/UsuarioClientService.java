@@ -18,21 +18,25 @@ public class UsuarioClientService {
     }
 
     public String listarUsuarios() {
+
         return restClient.get()
-                .uri("/usuarios")
+                .uri("/api/usuarios")
                 .retrieve()
                 .body(String.class);
     }
+
     public String buscarUsuarioPorId(Long id) {
-    return restClient.get()
-            .uri("/usuarios/" + id)
-            .retrieve()
-            .body(String.class);
+
+        return restClient.get()
+                .uri("/api/usuarios/" + id)
+                .retrieve()
+                .body(String.class);
     }
 
     public String crearUsuario(String usuarioJson) {
+
         return restClient.post()
-                .uri("/usuarios")
+                .uri("/api/usuarios")
                 .header("Content-Type", "application/json")
                 .body(usuarioJson)
                 .retrieve()
@@ -40,8 +44,9 @@ public class UsuarioClientService {
     }
 
     public String actualizarUsuario(Long id, String usuarioJson) {
+
         return restClient.put()
-                .uri("/usuarios/" + id)
+                .uri("/api/usuarios/" + id)
                 .header("Content-Type", "application/json")
                 .body(usuarioJson)
                 .retrieve()
@@ -49,8 +54,9 @@ public class UsuarioClientService {
     }
 
     public void eliminarUsuario(Long id) {
+
         restClient.delete()
-                .uri("/usuarios/" + id)
+                .uri("/api/usuarios/" + id)
                 .retrieve()
                 .toBodilessEntity();
     }
