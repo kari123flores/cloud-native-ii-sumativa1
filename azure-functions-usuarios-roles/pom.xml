@@ -43,6 +43,13 @@
             <artifactId>ojdbc11</artifactId>
             <version>23.6.0.24.10</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.graphql-java</groupId>
+            <artifactId>graphql-java</artifactId>
+            <version>17.3</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -53,7 +60,7 @@
                 <version>3.8.1</version>
                 <configuration>
                     <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <target>${java.version}</target>Z
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
