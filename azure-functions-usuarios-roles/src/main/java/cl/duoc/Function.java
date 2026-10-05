@@ -6,6 +6,13 @@ import com.microsoft.azure.functions.annotation.*;
 import java.sql.*;
 import java.util.Optional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.util.UUID;
+
 public class Function {
 
     // GET TODOS + POST
@@ -72,6 +79,7 @@ public class Function {
                     .build();
         }
     }
+
 
     // GET POR ID + PUT + DELETE
     @FunctionName("Usuarios")
@@ -143,6 +151,7 @@ public class Function {
         }
     }
 
+
     // POST
     private HttpResponseMessage crearUsuario(
             HttpRequestMessage<Optional<String>> request,
@@ -179,6 +188,16 @@ public class Function {
                 stmt.executeUpdate();
             }
 
+            // GENERAR EVENTO
+            enviarEvento(
+                    "UsuarioCreado",
+                    "{\"nombre\":\"" + nombre +
+                    "\",\"email\":\"" + email +
+                    "\",\"id_rol\":" + idRol +
+                    ",\"estado\":\"" + estado + "\"}",
+                    context
+            );
+
             return request.createResponseBuilder(HttpStatus.CREATED)
                     .header("Content-Type", "application/json")
                     .body("{\"mensaje\":\"Usuario creado correctamente\"}")
@@ -193,6 +212,7 @@ public class Function {
                     .build();
         }
     }
+
 
     // PUT
     private HttpResponseMessage actualizarUsuario(
@@ -238,6 +258,17 @@ public class Function {
                 }
             }
 
+            // GENERAR EVENTO
+            enviarEvento(
+                    "UsuarioActualizado",
+                    "{\"id_usuario\":" + id +
+                    ",\"nombre\":\"" + nombre +
+                    "\",\"email\":\"" + email +
+                    "\",\"id_rol\":" + idRol +
+                    ",\"estado\":\"" + estado + "\"}",
+                    context
+            );
+
             return request.createResponseBuilder(HttpStatus.OK)
                     .header("Content-Type", "application/json")
                     .body("{\"mensaje\":\"Usuario actualizado correctamente\"}")
@@ -252,6 +283,7 @@ public class Function {
                     .build();
         }
     }
+
 
     // DELETE
     private HttpResponseMessage eliminarUsuario(
@@ -279,6 +311,13 @@ public class Function {
                         .build();
             }
 
+            // GENERAR EVENTO
+            enviarEvento(
+                    "UsuarioEliminado",
+                    "{\"id_usuario\":" + id + "}",
+                    context
+            );
+
             return request.createResponseBuilder(HttpStatus.OK)
                     .header("Content-Type", "application/json")
                     .body("{\"mensaje\":\"Usuario eliminado correctamente\"}")
@@ -294,6 +333,84 @@ public class Function {
         }
     }
 
+
+    // ENVÍA EVENTOS A AZURE EVENT GRID
+    private void enviarEvento(
+            String tipoEvento,
+            String datos,
+            ExecutionContext context) {
+
+        try {
+
+            String endpoint = System.getenv("EVENT_GRID_ENDPOINT");
+            String key = System.getenv("EVENT_GRID_KEY");
+
+            if (endpoint == null || endpoint.isBlank()) {
+                context.getLogger().warning(
+                        "EVENT_GRID_ENDPOINT no está configurado"
+                );
+                return;
+            }
+
+            if (key == null || key.isBlank()) {
+                context.getLogger().warning(
+                        "EVENT_GRID_KEY no está configurado"
+                );
+                return;
+            }
+
+            String evento = String.format(
+                    "[{" +
+                    "\"id\":\"%s\"," +
+                    "\"eventType\":\"%s\"," +
+                    "\"subject\":\"usuarios\"," +
+                    "\"eventTime\":\"%s\"," +
+                    "\"dataVersion\":\"1.0\"," +
+                    "\"data\":%s" +
+                    "}]",
+                    UUID.randomUUID().toString(),
+                    tipoEvento,
+                    Instant.now().toString(),
+                    datos
+            );
+
+            HttpRequest solicitud = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .header("Content-Type", "application/json")
+                    .header("aeg-sas-key", key)
+                    .POST(HttpRequest.BodyPublishers.ofString(evento))
+                    .build();
+
+            HttpClient cliente = HttpClient.newHttpClient();
+
+            HttpResponse<String> respuesta = cliente.send(
+                    solicitud,
+                    HttpResponse.BodyHandlers.ofString()
+            );
+
+            context.getLogger().info(
+                    "Evento " +
+                    tipoEvento +
+                    " enviado a Event Grid. HTTP " +
+                    respuesta.statusCode()
+            );
+
+            if (respuesta.statusCode() >= 400) {
+                context.getLogger().warning(
+                        "Respuesta Event Grid: " + respuesta.body()
+                );
+            }
+
+        } catch (Exception e) {
+
+            context.getLogger().severe(
+                    "Error enviando evento a Event Grid: " +
+                    e.getMessage()
+            );
+        }
+    }
+
+
     // AUXILIAR PARA LEER JSON
     private String extraerValor(String json, String campo) {
 
@@ -306,8 +423,10 @@ public class Function {
 
         inicio += buscar.length();
 
-        while (inicio < json.length()
-                && Character.isWhitespace(json.charAt(inicio))) {
+        while (
+                inicio < json.length() &&
+                Character.isWhitespace(json.charAt(inicio))
+        ) {
             inicio++;
         }
 
@@ -322,9 +441,11 @@ public class Function {
 
         int fin = inicio;
 
-        while (fin < json.length()
-                && json.charAt(fin) != ','
-                && json.charAt(fin) != '}') {
+        while (
+                fin < json.length() &&
+                json.charAt(fin) != ',' &&
+                json.charAt(fin) != '}'
+        ) {
             fin++;
         }
 

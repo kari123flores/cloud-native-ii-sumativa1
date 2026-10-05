@@ -6,6 +6,13 @@ import com.microsoft.azure.functions.annotation.*;
 import java.sql.*;
 import java.util.Optional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.util.UUID;
+
 public class RolesFunction {
 
     // GET TODOS + POST
@@ -69,6 +76,7 @@ public class RolesFunction {
                     .build();
         }
     }
+
 
     // GET POR ID + PUT + DELETE
     @FunctionName("Roles")
@@ -137,6 +145,7 @@ public class RolesFunction {
         }
     }
 
+
     // POST
     private HttpResponseMessage crearRol(
             HttpRequestMessage<Optional<String>> request,
@@ -165,6 +174,14 @@ public class RolesFunction {
                 stmt.executeUpdate();
             }
 
+            // GENERAR EVENTO
+            enviarEvento(
+                    "RolCreado",
+                    "{\"nombre\":\"" + nombre +
+                    "\",\"descripcion\":\"" + descripcion + "\"}",
+                    context
+            );
+
             return request.createResponseBuilder(HttpStatus.CREATED)
                     .header("Content-Type", "application/json")
                     .body("{\"mensaje\":\"Rol creado correctamente\"}")
@@ -179,6 +196,7 @@ public class RolesFunction {
                     .build();
         }
     }
+
 
     // PUT
     private HttpResponseMessage actualizarRol(
@@ -216,6 +234,15 @@ public class RolesFunction {
                 }
             }
 
+            // GENERAR EVENTO
+            enviarEvento(
+                    "RolActualizado",
+                    "{\"id_rol\":" + id +
+                    ",\"nombre\":\"" + nombre +
+                    "\",\"descripcion\":\"" + descripcion + "\"}",
+                    context
+            );
+
             return request.createResponseBuilder(HttpStatus.OK)
                     .header("Content-Type", "application/json")
                     .body("{\"mensaje\":\"Rol actualizado correctamente\"}")
@@ -230,6 +257,7 @@ public class RolesFunction {
                     .build();
         }
     }
+
 
     // DELETE
     private HttpResponseMessage eliminarRol(
@@ -257,6 +285,13 @@ public class RolesFunction {
                         .build();
             }
 
+            // GENERAR EVENTO
+            enviarEvento(
+                    "RolEliminado",
+                    "{\"id_rol\":" + id + "}",
+                    context
+            );
+
             return request.createResponseBuilder(HttpStatus.OK)
                     .header("Content-Type", "application/json")
                     .body("{\"mensaje\":\"Rol eliminado correctamente\"}")
@@ -272,6 +307,84 @@ public class RolesFunction {
         }
     }
 
+
+    // ENVÍA EVENTOS A AZURE EVENT GRID
+    private void enviarEvento(
+            String tipoEvento,
+            String datos,
+            ExecutionContext context) {
+
+        try {
+
+            String endpoint = System.getenv("EVENT_GRID_ENDPOINT");
+            String key = System.getenv("EVENT_GRID_KEY");
+
+            if (endpoint == null || endpoint.isBlank()) {
+                context.getLogger().warning(
+                        "EVENT_GRID_ENDPOINT no está configurado"
+                );
+                return;
+            }
+
+            if (key == null || key.isBlank()) {
+                context.getLogger().warning(
+                        "EVENT_GRID_KEY no está configurado"
+                );
+                return;
+            }
+
+            String evento = String.format(
+                    "[{" +
+                    "\"id\":\"%s\"," +
+                    "\"eventType\":\"%s\"," +
+                    "\"subject\":\"roles\"," +
+                    "\"eventTime\":\"%s\"," +
+                    "\"dataVersion\":\"1.0\"," +
+                    "\"data\":%s" +
+                    "}]",
+                    UUID.randomUUID().toString(),
+                    tipoEvento,
+                    Instant.now().toString(),
+                    datos
+            );
+
+            HttpRequest solicitud = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
+                    .header("Content-Type", "application/json")
+                    .header("aeg-sas-key", key)
+                    .POST(HttpRequest.BodyPublishers.ofString(evento))
+                    .build();
+
+            HttpClient cliente = HttpClient.newHttpClient();
+
+            HttpResponse<String> respuesta = cliente.send(
+                    solicitud,
+                    HttpResponse.BodyHandlers.ofString()
+            );
+
+            context.getLogger().info(
+                    "Evento " +
+                    tipoEvento +
+                    " enviado a Event Grid. HTTP " +
+                    respuesta.statusCode()
+            );
+
+            if (respuesta.statusCode() >= 400) {
+                context.getLogger().warning(
+                        "Respuesta Event Grid: " + respuesta.body()
+                );
+            }
+
+        } catch (Exception e) {
+
+            context.getLogger().severe(
+                    "Error enviando evento a Event Grid: " +
+                    e.getMessage()
+            );
+        }
+    }
+
+
     // AUXILIAR PARA LEER JSON
     private String extraerValor(String json, String campo) {
 
@@ -284,8 +397,10 @@ public class RolesFunction {
 
         inicio += buscar.length();
 
-        while (inicio < json.length()
-                && Character.isWhitespace(json.charAt(inicio))) {
+        while (
+                inicio < json.length() &&
+                Character.isWhitespace(json.charAt(inicio))
+        ) {
             inicio++;
         }
 
@@ -300,9 +415,11 @@ public class RolesFunction {
 
         int fin = inicio;
 
-        while (fin < json.length()
-                && json.charAt(fin) != ','
-                && json.charAt(fin) != '}') {
+        while (
+                fin < json.length() &&
+                json.charAt(fin) != ',' &&
+                json.charAt(fin) != '}'
+        ) {
             fin++;
         }
 
